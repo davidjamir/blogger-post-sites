@@ -1,10 +1,7 @@
 import { google } from "googleapis";
 import { getAppBaseUrl } from "./env";
 import { connectDb } from "./db";
-import { BLOGGER_OAUTH_SCOPES } from "./blogger-scopes";
 import { AccountApi } from "./models";
-
-export const BLOGGER_SCOPES: string[] = [...BLOGGER_OAUTH_SCOPES];
 
 const GOOGLE_OAUTH_CALLBACK_PATH = "/api/auth/google/callback";
 

@@ -8,7 +8,3 @@ export const BLOGGER_OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/blogger",
   "https://www.googleapis.com/auth/userinfo.email",
 ] as const;
-
-export function getBloggerOAuthScopeString(): string {
-  return BLOGGER_OAUTH_SCOPES.join(" ");
-}
