@@ -52,6 +52,10 @@ export async function GET(request: Request) {
     summary: { ok, failed, processed: out.results.length },
     results: out.results,
   };
+  console.log(
+    "[cron/refresh-tokens] result.results",
+    JSON.stringify(result.results, null, 2)
+  );
   return NextResponse.json(result);
 }
 
