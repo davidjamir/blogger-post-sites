@@ -5,8 +5,9 @@ export async function insertBloggerPost(params: {
   title: string;
   content: string;
   labels?: string[];
+  accountEmail?: string;
 }) {
-  const blogger = await getBloggerClient();
+  const blogger = await getBloggerClient(params.accountEmail);
   const res = await blogger.posts.insert({
     blogId: params.blogId,
     requestBody: {

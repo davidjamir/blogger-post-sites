@@ -12,6 +12,9 @@ export interface IAccountApi {
   scope?: string;
   /** Mongoose version key (mặc định là `__v`, đổi thành `version` cho dễ đọc). */
   version?: number;
+  /** `timestamps: true` — gán lại khi đổi access token. */
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const accountApiSchema = new Schema<IAccountApi>(
@@ -28,3 +31,44 @@ const accountApiSchema = new Schema<IAccountApi>(
 export const AccountApi: Model<IAccountApi> =
   (models.AccountApi as Model<IAccountApi> | undefined) ??
   model<IAccountApi>("AccountApi", accountApiSchema);
+
+/** Hàng đợi đăng bài — collection `post_queue` (có thể cấu hình / tích hợp bên ngoài). */
+export type PostQueueStatus = "pending" | "processing" | "done" | "failed";
+
+export interface IPostQueue {
+  accountEmail: string;
+  blogId: string;
+  title: string;
+  content: string;
+  labels?: string[];
+  status: PostQueueStatus;
+  errorMessage?: string;
+  postId?: string;
+  postUrl?: string;
+}
+
+const postQueueSchema = new Schema<IPostQueue>(
+  {
+    accountEmail: { type: String, required: true, index: true },
+    blogId: { type: String, required: true },
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    labels: { type: [String], default: undefined },
+    status: {
+      type: String,
+      enum: ["pending", "processing", "done", "failed"],
+      default: "pending",
+      index: true,
+    },
+    errorMessage: { type: String, default: "" },
+    postId: { type: String, default: "" },
+    postUrl: { type: String, default: "" },
+  },
+  { timestamps: true, collection: "post_queue" }
+);
+
+postQueueSchema.index({ status: 1, createdAt: 1 });
+
+export const PostQueue: Model<IPostQueue> =
+  (models.PostQueue as Model<IPostQueue> | undefined) ??
+  model<IPostQueue>("PostQueue", postQueueSchema);

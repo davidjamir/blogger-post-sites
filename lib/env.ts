@@ -44,6 +44,21 @@ function defaultProtoForHostHeader(host: string): "http" | "https" {
   return "https";
 }
 
+/** Origin từ `x-forwarded-*` nếu có. */
+function readOriginFromProxyHeaders(
+  get: (name: string) => string | null
+): string | null {
+  const forwardedHost = get("x-forwarded-host");
+  const forwardedProto = get("x-forwarded-proto");
+  if (forwardedHost) {
+    const host = forwardedHost.split(",")[0].trim();
+    const protoFromHeader = forwardedProto?.split(",")[0]?.trim();
+    const proto = protoFromHeader || defaultProtoForHostHeader(host);
+    return `${proto}://${host}`.replace(/\/$/, "");
+  }
+  return null;
+}
+
 /**
  * Origin “trình duyệt thấy” — bắt buộc trùng redirect_uri khai trên Google Cloud.
  * `vercel dev` proxy (localhost:3000 → Next ở cổng nội bộ); `new URL(request.url).origin`
@@ -51,13 +66,9 @@ function defaultProtoForHostHeader(host: string): "http" | "https" {
  * chuẩn proxy: x-forwarded-host, x-forwarded-proto.
  */
 export function getOAuthPublicOrigin(request: Request): string {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  if (forwardedHost) {
-    const host = forwardedHost.split(",")[0].trim();
-    const protoFromHeader = forwardedProto?.split(",")[0]?.trim();
-    const proto = protoFromHeader || defaultProtoForHostHeader(host);
-    return `${proto}://${host}`.replace(/\/$/, "");
+  const o = readOriginFromProxyHeaders((k) => request.headers.get(k));
+  if (o) {
+    return o;
   }
   return new URL(request.url).origin.replace(/\/$/, "");
 }
@@ -108,21 +119,19 @@ export function getResolvedOAuthPublicOrigin(
   return getOAuthPublicOrigin(request);
 }
 
-/** Server Component (chỉ có `headers()`, không có `Request.url` đủ) — cùng quy tắc `x-forwarded-*`. */
+/** Server Component (chỉ có `headers()`) — cùng quy tắc `x-forwarded-*`, rồi `host`, rồi env. */
 export function getOAuthPublicOriginFromHeaders(headerList: {
   get(name: string): string | null;
 }): string {
-  const forwardedHost = headerList.get("x-forwarded-host");
-  const forwardedProto = headerList.get("x-forwarded-proto");
-  if (forwardedHost) {
-    const host = forwardedHost.split(",")[0].trim();
-    const protoFromHeader = forwardedProto?.split(",")[0]?.trim();
-    const proto = protoFromHeader || defaultProtoForHostHeader(host);
-    return `${proto}://${host}`.replace(/\/$/, "");
+  const o = readOriginFromProxyHeaders((k) => headerList.get(k));
+  if (o) {
+    return o;
   }
   const host = headerList.get("host")?.split(",")[0].trim();
   if (host) {
-    const protoFromHeader = forwardedProto?.split(",")[0]?.trim();
+    const protoFromHeader = headerList.get("x-forwarded-proto")
+      ?.split(",")[0]
+      .trim();
     const proto = protoFromHeader || defaultProtoForHostHeader(host);
     return `${proto}://${host}`.replace(/\/$/, "");
   }

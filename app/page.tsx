@@ -111,25 +111,24 @@ export default async function Home({
       </div>
 
       <div className="card">
-        <strong>API gợi ý</strong>
+        <strong>API</strong>
+        <p className="status-meta" style={{ marginTop: "0.5rem" }}>
+          <code>/api/auth/*</code> và <code>/api/cron/*</code>.
+        </p>
         <ul className="api-list">
           <li>
-            <code>GET /api/auth/google</code> — bắt đầu OAuth (redirect Google, máy chủ)
+            <code>GET /api/auth/google</code> — OAuth (redirect Google)
           </li>
           <li>
-            <code>GET /api/auth/google/callback</code> — callback (<code>code</code> → token)
+            <code>GET /api/auth/google/callback</code> — callback token
           </li>
           <li>
-            <code>GET /api/auth/status</code> — trạng thái token
+            <code>GET /api/cron/refresh-tokens</code> — Bearer <code>CRON_SECRET</code>; query{" "}
+            <code>withinMinutes</code>, <code>max</code>
           </li>
           <li>
-            <code>POST /api/auth/google/revoke</code> — thu hồi token Google (Bearer CRON_SECRET)
-          </li>
-          <li>
-            <code>POST /api/blogger/posts</code> — đăng bài (Bearer CRON_SECRET)
-          </li>
-          <li>
-            <code>GET /api/cron/refresh-google-token</code> — cron mỗi phút (Bearer CRON_SECRET; <code>vercel.json</code>)
+            <code>GET /api/cron/publish-posts</code> — Bearer <code>CRON_SECRET</code>; query{" "}
+            <code>limit</code> (hàng đợi <code>post_queue</code> khi bạn cấu hình)
           </li>
         </ul>
       </div>

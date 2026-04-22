@@ -1,7 +1,11 @@
 import { google } from "googleapis";
-import { BLOGGER_OAUTH_SCOPES } from "./blogger-scopes";
 
 type OAuth2Client = InstanceType<typeof google.auth.OAuth2>;
+
+const BLOGGER_OAUTH_SCOPES = [
+  "https://www.googleapis.com/auth/blogger",
+  "https://www.googleapis.com/auth/userinfo.email",
+] as const;
 
 /**
  * URL ủy quyên — cùng tham số mẫu tài liệu Node (google.auth.OAuth2 + generateAuthUrl):
@@ -41,18 +45,4 @@ export function scopeIncludesBlogger(
     return false;
   }
   return BLOGGER_OAUTH_SCOPES.some((s) => raw.split(/\s+/).includes(s));
-}
-
-/**
- * Revoke theo tài liệu: POST `https://oauth2.googleapis.com/revoke` với `token=`.
- * @see mẫu /revoke (https.request) trong tài liệu Node
- */
-export async function revokeGoogleToken(token: string): Promise<Response> {
-  return fetch("https://oauth2.googleapis.com/revoke", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({ token }),
-  });
 }
