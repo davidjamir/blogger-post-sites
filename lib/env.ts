@@ -15,6 +15,36 @@ export function getAppBaseUrl(): string {
 }
 
 /**
+ * Khi không có `x-forwarded-proto` / full URL, đoán http cho môi trường dev/LAN
+ * để gần với `new URL(request.url).origin` (ví dụ `http://192.168.x.x:3000`).
+ */
+function defaultProtoForHostHeader(host: string): "http" | "https" {
+  const h = host.toLowerCase();
+  if (h.includes("localhost") || h.startsWith("127.")) {
+    return "http";
+  }
+  if (h.startsWith("[::1]") || h === "::1") {
+    return "http";
+  }
+  const hostNoPort = h.includes("]:") ? h.split("]:")[0]! + "]" : h.replace(/:\d+$/, "");
+  const parts = hostNoPort.split(".");
+  if (parts.length === 4) {
+    const a = Number(parts[0]);
+    const b = Number(parts[1]);
+    if (a === 10) {
+      return "http";
+    }
+    if (a === 192 && b === 168) {
+      return "http";
+    }
+    if (a === 172 && b >= 16 && b <= 31) {
+      return "http";
+    }
+  }
+  return "https";
+}
+
+/**
  * Origin “trình duyệt thấy” — bắt buộc trùng redirect_uri khai trên Google Cloud.
  * `vercel dev` proxy (localhost:3000 → Next ở cổng nội bộ); `new URL(request.url).origin`
  * có thể là `http://localhost:5450x` → redirect_uri_mismatch. Ưu tiên header
@@ -26,11 +56,7 @@ export function getOAuthPublicOrigin(request: Request): string {
   if (forwardedHost) {
     const host = forwardedHost.split(",")[0].trim();
     const protoFromHeader = forwardedProto?.split(",")[0]?.trim();
-    const proto =
-      protoFromHeader ||
-      (host.includes("localhost") || host.startsWith("127.")
-        ? "http"
-        : "https");
+    const proto = protoFromHeader || defaultProtoForHostHeader(host);
     return `${proto}://${host}`.replace(/\/$/, "");
   }
   return new URL(request.url).origin.replace(/\/$/, "");
@@ -91,19 +117,17 @@ export function getOAuthPublicOriginFromHeaders(headerList: {
   if (forwardedHost) {
     const host = forwardedHost.split(",")[0].trim();
     const protoFromHeader = forwardedProto?.split(",")[0]?.trim();
-    const proto =
-      protoFromHeader ||
-      (host.includes("localhost") || host.startsWith("127.")
-        ? "http"
-        : "https");
+    const proto = protoFromHeader || defaultProtoForHostHeader(host);
     return `${proto}://${host}`.replace(/\/$/, "");
   }
   const host = headerList.get("host")?.split(",")[0].trim();
   if (host) {
-    const proto = host.includes("localhost") || host.startsWith("127.")
-      ? "http"
-      : "https";
+    const protoFromHeader = forwardedProto?.split(",")[0]?.trim();
+    const proto = protoFromHeader || defaultProtoForHostHeader(host);
     return `${proto}://${host}`.replace(/\/$/, "");
+  }
+  if (process.env.NEXT_PUBLIC_APP_URL?.trim()) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   }
   return "http://localhost:3000";
 }
