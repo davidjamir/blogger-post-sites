@@ -19,7 +19,14 @@ export interface IAccountApi {
 
 const accountApiSchema = new Schema<IAccountApi>(
   {
-    email: { type: String, required: true, unique: true, index: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+      trim: true,
+      lowercase: true,
+    },
     refreshToken: { type: String, default: "" },
     accessToken: { type: String, required: true },
     expired: { type: Date, required: true, index: true },
@@ -27,6 +34,16 @@ const accountApiSchema = new Schema<IAccountApi>(
   },
   { timestamps: true, collection: "account_api", versionKey: "version" }
 );
+
+/** Một tài khoản Google = một document; dùng để lọc upsert ổn định (tránh lệch hoa thường). */
+export function normalizeAccountEmail(
+  raw: string | null | undefined
+): string {
+  if (raw == null) {
+    return "";
+  }
+  return String(raw).trim().toLowerCase();
+}
 
 export const AccountApi: Model<IAccountApi> =
   (models.AccountApi as Model<IAccountApi> | undefined) ??

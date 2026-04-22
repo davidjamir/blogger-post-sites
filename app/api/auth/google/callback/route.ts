@@ -4,7 +4,7 @@ import { getResolvedOAuthPublicOrigin, OAUTH_PUBLIC_ORIGIN_COOKIE } from "@/lib/
 import { connectDb } from "@/lib/db";
 import { buildGoogleOAuthRedirectUri, createOAuth2Client } from "@/lib/google-auth";
 import { scopeIncludesBlogger } from "@/lib/google-oauth-web";
-import { AccountApi } from "@/lib/models";
+import { AccountApi, normalizeAccountEmail } from "@/lib/models";
 import {
   logOAuthCallbackError,
   logOAuthCallbackIncoming,
@@ -92,7 +92,12 @@ export async function GET(request: NextRequest) {
     const oauth2Api = google.oauth2({ version: "v2", auth: oauth2 });
     const userInfo = await oauth2Api.userinfo.get();
     logOAuthUserInfoResult(userInfo);
-    const email = userInfo.data.email ?? "unknown";
+    const email = normalizeAccountEmail(userInfo.data.email);
+    if (!email) {
+      const res = NextResponse.redirect(`${origin}/login?error=no_email`);
+      clearOauthStartCookies(res);
+      return res;
+    }
 
     const expired = tokens.expiry_date
       ? new Date(tokens.expiry_date)
@@ -100,16 +105,25 @@ export async function GET(request: NextRequest) {
 
     await connectDb();
     const scope = typeof tokens.scope === "string" ? tokens.scope.trim() : "";
+    // Một email = một bản ghi: update theo email (so khớp không phân biệt hoa thường) hoặc tạo mới nếu chưa có.
     await AccountApi.findOneAndUpdate(
       { email },
       {
-        email,
-        refreshToken: tokens.refresh_token,
-        accessToken: tokens.access_token ?? "",
-        expired,
-        scope,
+        $set: {
+          email,
+          refreshToken: tokens.refresh_token,
+          accessToken: tokens.access_token ?? "",
+          expired,
+          scope,
+        },
       },
-      { upsert: true, new: true }
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+        setDefaultsOnInsert: true,
+        collation: { locale: "en", strength: 2 },
+      }
     );
 
     logOAuthCallbackSuccess({

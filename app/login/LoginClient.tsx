@@ -7,6 +7,7 @@ const errors: Record<string, string> = {
   oauth_config:
     "Thiếu GOOGLE_CLIENT_ID hoặc GOOGLE_CLIENT_SECRET (.env.local / Vercel).",
   invalid_oauth: "Phiên đăng nhập không hợp lệ (state/code). Thử lại.",
+  no_email: "Google không trả email. Kiểm tra quyền hồ sơ trong OAuth và thử lại.",
   no_refresh_token:
     "Google không trả refresh token. Gỡ quyền app trên tài khoản Google rồi đăng nhập lại (tài liệu: chỉ lần uỷ quyền đầu).",
   token_exchange:
